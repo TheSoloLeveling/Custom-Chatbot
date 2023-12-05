@@ -71,14 +71,25 @@ def handle_userinput(user_question):
     
     with st.session_state.container1:
         
+        if st.session_state.status == True:
+            for i, message in enumerate(st.session_state.chat_history):
+                if i % 2 == 0:
+                    st.write(user_template.replace(
+                        "{{MSG}}", message.content), unsafe_allow_html=True)
+                else:
+                    
+                    st.write(bot_template.replace(
+                        "{{MSG}}", message.content), unsafe_allow_html=True) 
+        
         response = st.session_state.conversation({'question': user_question})
         print(response)
         st.session_state.chat_history = response['chat_history']
-
+        print(type( st.session_state.chat_history))
         st.write(user_template.replace(
                     "{{MSG}}", user_question), unsafe_allow_html=True)
         st.write(bot_template.replace(
                     "{{MSG}}", response['answer']), unsafe_allow_html=True)
+        st.session_state.status = True
 
 
 def typewriter(text):
@@ -120,6 +131,7 @@ def typewriter(text):
         <script>
         const div = document.querySelector(".message");
         
+        
         texto = "{text}"
         function effect(element, texto, i = 0) {{
             
@@ -133,7 +145,7 @@ def typewriter(text):
                 return;
             }}
 
-            setTimeout(() => effect(element, texto, i+1), 40);
+            setTimeout(() => effect(element, texto, i+1), 50);
         }}
 
         effect(div, texto);
@@ -152,8 +164,8 @@ def main():
     st.header("Chatbot for Asthma")
     st.write(css, unsafe_allow_html=True)
 
-    
-    
+    if "status" not in st.session_state:
+        st.session_state.status = False
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
