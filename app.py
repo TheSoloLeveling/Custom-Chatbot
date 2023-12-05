@@ -70,67 +70,148 @@ def get_conversation_chain(vectorstore):
 def handle_userinput(user_question):
     
     with st.session_state.container1:
-        
         if st.session_state.status == True:
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
-                    st.write(user_template.replace(
-                        "{{MSG}}", message.content), unsafe_allow_html=True)
+                    typewriterUser(message.content)
+                    #st.write(user_template.replace(
+                     #   "{{MSG}}", message.content), unsafe_allow_html=True)
                 else:
-                    
-                    st.write(bot_template.replace(
-                        "{{MSG}}", message.content), unsafe_allow_html=True) 
+                    typewriterBot(message.content)
+                    #st.write(bot_template.replace(
+                        #"{{MSG}}", message.content), unsafe_allow_html=True) 
         
         response = st.session_state.conversation({'question': user_question})
         print(response)
         st.session_state.chat_history = response['chat_history']
         print(type( st.session_state.chat_history))
-        st.write(user_template.replace(
-                    "{{MSG}}", user_question), unsafe_allow_html=True)
-        st.write(bot_template.replace(
-                    "{{MSG}}", response['answer']), unsafe_allow_html=True)
+        typewriterUser(user_question)
+        typewriterBot(response['answer'])
         st.session_state.status = True
 
+def typewriterUser(text):
+    # Estimate the number of lines
+    average_chars_per_line = 50  # This is an estimate; adjust based on your actual content and styling
+    line_height = 1.5  # Adjust based on your styling
+    font_size = 16  # Font size in pixels; adjust as needed
 
-def typewriter(text):
+    # Calculate the number of lines the text will occupy
+    num_lines = len(text) / average_chars_per_line
+    estimated_height = 0
+    # Calculate the estimated height in pixels
+    if num_lines > 6 :
+        estimated_height = num_lines * line_height * font_size
+    else:
+        estimated_height = 90
     components.html(
         f"""
-        <div class="chat-message bot typewriter" >
-            <div class="avatar">
-                <img src="https://d2cbg94ubxgsnp.cloudfront.net/Pictures/2000x1125/9/9/3/512993_shutterstock_715962319converted_920340.png" style="max-height: 78px; max-width: 78px; border-radius: 50%; object-fit: cover;">
+        <div class="chat-container">
+            <div class="chat-message bot typewriter">
+                <div class="avatar">
+                    <img src="https://t4.ftcdn.net/jpg/02/29/75/83/240_F_229758328_7x8jwCwjtBMmC6rgFzLFhZoEpLobB6L8.jpg" style="max-height: 78px; max-width: 78px; border-radius: 50%; object-fit: cover;">
+                </div>    
+                <div class="message">{text}</div>
             </div>
-            <div class="message"></div>
         </div>
         <style>
+        /* Set up the grid container */
+        .chat-container {{
+            display: grid;
+            grid-template-columns: auto; /* One column layout */
+            grid-gap: 10px; /* Adjust the gap between grid items */
+            max-width: 600px; /* Adjust the width as needed */
+            margin: 0 auto; /* Center the container */
+        }}
+
+        /* Style for each chat message */
         .chat-message {{
-            padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #475063;
+            color: #fff;
+            margin: 0; /* Remove any default margin */
         }}
-        .chat-message.user {{
-            background-color: #2b313e
-        }}
-        .chat-message.bot {{
-            background-color: #475063
-        }}
+
+        /* Style for the avatar within the message */
         .chat-message .avatar {{
             width: 20%;
+            padding-right: 1rem; /* Space between avatar and message */
         }}
-        .chat-message .avatar img {{
-            max-width: 78px;
-            max-height: 78px;
-            border-radius: 50%;
-            object-fit: cover;
-        }}
+
+        /* Style for the message text */
         .chat-message .message {{
             width: 80%;
-            padding: 0 1.5rem;
-            color: #fff;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }} 
+        </style>
+        """,
+        height=int(estimated_height),
+        
+    )
+
+def typewriterBot(text):
+    # Estimate the number of lines
+    average_chars_per_line = 50  # This is an estimate; adjust based on your actual content and styling
+    line_height = 1.5  # Adjust based on your styling
+    font_size = 16  # Font size in pixels; adjust as needed
+
+    # Calculate the number of lines the text will occupy
+    num_lines = len(text) / average_chars_per_line
+    estimated_height = 0
+    # Calculate the estimated height in pixels
+    if num_lines > 6 :
+        estimated_height = num_lines * line_height * font_size
+    else:
+        estimated_height = 90
+    components.html(
+        f"""
+        <div class="chat-container">
+            <div class="chat-message bot typewriter" >
+                <div class="avatar">
+                    <img src="https://d2cbg94ubxgsnp.cloudfront.net/Pictures/2000x1125/9/9/3/512993_shutterstock_715962319converted_920340.png" style="max-height: 78px; max-width: 78px; border-radius: 50%; object-fit: cover;">
+                </div>
+                <div class="message"></div>
+            </div>
+        </div>
+        <style>
+        /* Set up the grid container */
+        .chat-container {{
+            display: grid;
+            grid-template-columns: auto; /* One column layout */
+            grid-gap: 10px; /* Adjust the gap between grid items */
+            max-width: 600px; /* Adjust the width as needed */
+            margin: 0 auto; /* Center the container */
         }}
-        
-        
+
+        /* Style for each chat message */
+        .chat-message {{
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #475063;
+            color: #fff;
+            margin: 0; /* Remove any default margin */
+        }}
+
+        /* Style for the avatar within the message */
+        .chat-message .avatar {{
+            width: 20%;
+            padding-right: 1rem; /* Space between avatar and message */
+        }}
+
+        /* Style for the message text */
+        .chat-message .message {{
+            width: 80%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }} 
         </style>
         <script>
         const div = document.querySelector(".message");
-        
         
         texto = "{text}"
         function effect(element, texto, i = 0) {{
@@ -145,13 +226,14 @@ def typewriter(text):
                 return;
             }}
 
-            setTimeout(() => effect(element, texto, i+1), 50);
+            setTimeout(() => effect(element, texto, i+1), 40);
         }}
 
         effect(div, texto);
         </script>
         """,
-        height=600,
+        height=int(estimated_height),
+        
     )
 
 
@@ -178,10 +260,10 @@ def main():
     
 
     with st.session_state.container1:
-        typewriter("Welcome. ask anything about asthma.")
+        typewriterBot("Welcome. ask anything about asthma.")
         
     
-    user_question =  st.text_input("")
+    user_question = st.text_input("")
 
     if user_question:
         handle_userinput(user_question)
