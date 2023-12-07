@@ -70,24 +70,26 @@ def get_conversation_chain(vectorstore):
 def handle_userinput(user_question):
     
     with st.session_state.container1:
-        if st.session_state.status == True:
-            for i, message in enumerate(st.session_state.chat_history):
-                if i % 2 == 0:
-                    typewriterUser(message.content)
-                    #st.write(user_template.replace(
-                     #   "{{MSG}}", message.content), unsafe_allow_html=True)
-                else:
-                    typewriterBot(message.content)
-                    #st.write(bot_template.replace(
-                        #"{{MSG}}", message.content), unsafe_allow_html=True) 
-        
+
         response = st.session_state.conversation({'question': user_question})
         print(response)
         st.session_state.chat_history = response['chat_history']
-        print(type( st.session_state.chat_history))
-        typewriterUser(user_question)
-        typewriterBot(response['answer'])
-        st.session_state.status = True
+        
+        for i, message in enumerate(st.session_state.chat_history):
+            if i % 2 == 0:
+                typewriterUser(message.content)
+                #st.write(user_template.replace(
+                    #   "{{MSG}}", message.content), unsafe_allow_html=True)
+            else:
+                typewriterBot(message.content)
+                #st.write(bot_template.replace(
+                    #"{{MSG}}", message.content), unsafe_allow_html=True) 
+        
+        
+        #print(type( st.session_state.chat_history))
+        #typewriterUser(user_question)
+        #typewriterBot(response['answer'])
+        #st.session_state.status = True
 
 def typewriterUser(text):
     # Estimate the number of lines
@@ -253,7 +255,7 @@ def main():
     st.write(css, unsafe_allow_html=True)
 
     if "status" not in st.session_state:
-        st.session_state.status = False
+        st.session_state.status = None
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
@@ -261,7 +263,7 @@ def main():
     if "container1" not in st.session_state:
         st.session_state.container1 = None
   
-    
+    st.session_state.status = False
     st.session_state.container1 = st.container()
     
 
