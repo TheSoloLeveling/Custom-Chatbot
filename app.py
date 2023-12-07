@@ -68,22 +68,12 @@ def get_conversation_chain(vectorstore):
     return conversation_chain
 
 def handle_userinput(user_question):
-    
+    st.session_state.status = False
     with st.session_state.container1:
-
         response = st.session_state.conversation({'question': user_question})
         print(response)
         st.session_state.chat_history = response['chat_history']
-        
-        for i, message in enumerate(st.session_state.chat_history):
-            if i % 2 == 0:
-                typewriterUser(message.content)
-                #st.write(user_template.replace(
-                    #   "{{MSG}}", message.content), unsafe_allow_html=True)
-            else:
-                typewriterBot(message.content)
-                #st.write(bot_template.replace(
-                    #"{{MSG}}", message.content), unsafe_allow_html=True) 
+
         
         
         #print(type( st.session_state.chat_history))
@@ -255,29 +245,67 @@ def main():
     st.write(css, unsafe_allow_html=True)
 
     if "status" not in st.session_state:
-        st.session_state.status = None
+        st.session_state.status = True
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
     if "container1" not in st.session_state:
         st.session_state.container1 = None
+    if "user_question" not in st.session_state:
+        st.session_state.user_question = None
   
-    st.session_state.status = False
+    #st.session_state.status = True
     st.session_state.container1 = st.container()
-    
+    toggle_all= True
 
+    st.session_state.user_question = st.text_input("")
+
+    if st.session_state.user_question:
+        st.session_state.status = True
+        handle_userinput(st.session_state.user_question)
+
+    #Print In Screen AFTER all UPDATEs
     with st.session_state.container1:
         typewriterBot("Welcome Back. ask anything about asthma.")
-        
+    
+    print(st.session_state.status)
+    if st.session_state.chat_history:
+        with st.session_state.container1:
+            for i, message in enumerate(st.session_state.chat_history):
+                if i % 2 == 0:
+                    typewriterUser(message.content)
+                    #st.write(user_template.replace(
+                        #   "{{MSG}}", message.content), unsafe_allow_html=True)
+                else:
+                    typewriterBot(message.content)
         
     
-    user_question = st.text_input("")
+    
+    if toggle_all:
+        #This looks for any input box and applies the code to it to stop default behavior when focus is lost
+        components.html(
+            """
+        <script>
+        const doc = window.parent.document;
+        const inputs = doc.querySelectorAll('input');
+        inputs.forEach(input => {
+            // Make each input required
+            input.required = true;
+        });
 
-    if user_question:
-        handle_userinput(user_question)
+        inputs.forEach(input => {
+        input.addEventListener('focusout', function(event) {
+            event.stopPropagation();
+            event.preventDefault();
+            console.log("lost focus")
+        });
+        });
 
-       
+        </script>""",
+            height=0,
+            width=0,
+        )
 
     with st.sidebar:
         st.subheader("Base Knowldge")
