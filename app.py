@@ -9,8 +9,14 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
+from langchain import PromptTemplate
+from langchain.chains import LLMChain
 import time
 import streamlit.components.v1 as components
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+import copy
+import io
 
 #def get_images
 #def get_file_text
@@ -51,18 +57,35 @@ def get_vectorstore_instructor(text_chunks):
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
-
 def get_conversation_chain(vectorstore):
+
+    # Define your system instruction
+    system_instruction = "I want you to act as a human medical assistant."
+
+    # Define your template with the system instruction
+    template = (
+        f"{system_instruction} "
+        "Combine the chat history and follow up question into."
+        "a standalone question. Chat History: {chat_history}"
+        "Follow up question: {question}"
+    )
+
+    # Create the prompt template
+    condense_question_prompt = PromptTemplate.from_template(template)
+
     llm = ChatOpenAI()
     # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
 
     memory = ConversationBufferMemory(     #memory used by the chatbot stores messages in buffer - when called returns all messages stored
         memory_key='chat_history', return_messages=True)
 
+    st.session_state.chatMemory = memory
+
     conversation_chain = ConversationalRetrievalChain.from_llm(     #conversation chain 
         llm=llm,
-        retriever=vectorstore.as_retriever(),
-        memory=memory
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 2}),
+        memory=st.session_state.chatMemory,
+        #condense_question_prompt=condense_question_prompt,
     )
 
     return conversation_chain
@@ -70,31 +93,61 @@ def get_conversation_chain(vectorstore):
 def handle_userinput(user_question):
     st.session_state.status = False
     with st.session_state.container1:
+        
+        dummy = copy.deepcopy(st.session_state.chatMemory)
+        print("dummy : " + str(dummy))
         response = st.session_state.conversation({'question': user_question})
-        print(response)
-        st.session_state.chat_history = response['chat_history']
+        #print(response)
+
+        score = sim(str(user_question), str(response['answer']))
+        print("similarity between " + str(user_question) + " and " + str(response['answer']) + " is : " + str(score))
+        if score > 0.1 :
+            #st.session_state.chat_history = response['chat_history']
+            st.session_state.chatMemory = response['chat_history']
+            st.session_state.displayMemory.append(user_question)
+            st.session_state.displayMemory.append(response['answer'])
+        else:
+            #st.session_state.chat_history = response['chat_history']
+            st.session_state.chatMemory = dummy
+            print("after update memory : " + str(st.session_state.chatMemory))
+            st.session_state.displayMemory.append(user_question)
+            st.session_state.displayMemory.append("i don't know.")
 
         
-        
+
+
         #print(type( st.session_state.chat_history))
         #typewriterUser(user_question)
         #typewriterBot(response['answer'])
         #st.session_state.status = True
 
 def typewriterUser(text):
+    
+    def estimate_text_height(text, font_size, line_height):
+        lines = text.split('\n')  # Split the text into lines at each newline character
+        total_lines = 0
+
+        for line in lines:
+            if line:  # Check if the line is not empty
+                # Calculate the number of lines this particular line will occupy
+                line_length = len(line)
+                line_lines = -(-line_length // average_chars_per_line)  # Ceiling division
+                total_lines += line_lines
+            else:
+                # Empty line indicates a paragraph break or bullet point
+                total_lines += 1  # Add one line for the line jump
+
+        # Calculate the estimated height in pixels
+        estimated_height = total_lines * line_height * font_size
+        return estimated_height
+    
     # Estimate the number of lines
     average_chars_per_line = 64  # This is an estimate; adjust based on your actual content and styling
-    line_height = 1.5  # Adjust based on your styling
-    font_size = 16  # Font size in pixels; adjust as needed
+    line_height = 5 # Adjust based on your styling
+    font_size = 20  # Font size in pixels; adjust as needed
 
-    # Calculate the number of lines the text will occupy
-    num_lines = len(text) / average_chars_per_line
-    estimated_height = 0
-    # Calculate the estimated height in pixels
-    if num_lines > 3 :
-        estimated_height = num_lines * line_height * font_size
-    else:
-        estimated_height = 90
+    estimated_height = estimate_text_height(text, font_size, line_height)
+
     components.html(
         f"""
         <div class="chat-container">
@@ -148,19 +201,31 @@ def typewriterUser(text):
     )
 
 def typewriterBot(text):
+    def estimate_text_height(text, font_size, line_height):
+        lines = text.split('\n')  # Split the text into lines at each newline character
+        total_lines = 0
+
+        for line in lines:
+            if line:  # Check if the line is not empty
+                # Calculate the number of lines this particular line will occupy
+                line_length = len(line)
+                line_lines = -(-line_length // average_chars_per_line)  # Ceiling division
+                total_lines += line_lines
+            else:
+                # Empty line indicates a paragraph break or bullet point
+                total_lines += 1  # Add one line for the line jump
+
+        # Calculate the estimated height in pixels
+        estimated_height = total_lines * line_height * font_size
+        return estimated_height
+    
     # Estimate the number of lines
     average_chars_per_line = 64  # This is an estimate; adjust based on your actual content and styling
-    line_height = 1.5  # Adjust based on your styling
-    font_size = 16  # Font size in pixels; adjust as needed
+    line_height = 5 # Adjust based on your styling
+    font_size = 20  # Font size in pixels; adjust as needed
 
-    # Calculate the number of lines the text will occupy
-    num_lines = len(text) / average_chars_per_line
-    estimated_height = 0
-    # Calculate the estimated height in pixels
-    if num_lines > 3 :
-        estimated_height = num_lines * line_height * font_size
-    else:
-        estimated_height = 90
+    estimated_height = estimate_text_height(text, font_size, line_height)
+   
     components.html(
         f"""
         <div class="chat-container">
@@ -177,8 +242,7 @@ def typewriterBot(text):
             display: grid;
             grid-template-columns: auto; /* One column layout */
             grid-gap: 10px; /* Adjust the gap between grid items */
-            margin: 0 auto; /* Center the container */
-            
+            margin: 0 auto; /* Center the container */    
         }}
 
         /* Style for each chat message */
@@ -224,7 +288,7 @@ def typewriterBot(text):
                 return;
             }}
 
-            setTimeout(() => effect(element, texto, i+1), 25);
+            setTimeout(() => effect(element, texto, i+1), 5);
         }}
 
         effect(div, texto);
@@ -254,8 +318,18 @@ def main():
         st.session_state.container1 = None
     if "user_question" not in st.session_state:
         st.session_state.user_question = None
+    if "displayMemory" not in st.session_state:
+        st.session_state.displayMemory = []
+    
+    if "chatMemory" not in st.session_state:
+        st.session_state.chatMemory = None
+
+    if "fixedMemory" not in st.session_state:
+        st.session_state.fixedMemory = None
+    
   
     #st.session_state.status = True
+    
     st.session_state.container1 = st.container()
     toggle_all= True
 
@@ -270,15 +344,17 @@ def main():
         typewriterBot("Welcome Back. ask anything about asthma.")
     
     print(st.session_state.status)
-    if st.session_state.chat_history:
+    #print(st.session_state.displayMemory)
+    print(st.session_state.chatMemory)
+    if st.session_state.displayMemory:
         with st.session_state.container1:
-            for i, message in enumerate(st.session_state.chat_history):
+            for i, message in enumerate(st.session_state.displayMemory):
                 if i % 2 == 0:
-                    typewriterUser(message.content)
+                    typewriterUser(message)
                     #st.write(user_template.replace(
                         #   "{{MSG}}", message.content), unsafe_allow_html=True)
                 else:
-                    typewriterBot(message.content)
+                    typewriterBot(message)
         
     
     
@@ -309,10 +385,11 @@ def main():
 
     with st.sidebar:
         st.subheader("Base Knowldge")
+        vectorstore = None
         docs = st.file_uploader(
             "Upload your data", accept_multiple_files=True)
         if st.button("Process"):
-           
+            
             with st.spinner("Processing"):
 
                 #get pdf text
@@ -324,10 +401,47 @@ def main():
 
                 # craete vector store, vector database containing embedding of each chunk of text
                 vectorstore = get_vectorstore_openai(text_chunks)
-
                 # create conversation chain
                 st.session_state.conversation = get_conversation_chain(vectorstore)
 
+            
+from nltk.corpus import stopwords 
+from nltk.tokenize import word_tokenize 
+import nltk
+nltk.download('stopwords')
+
+def sim(X,Y):
+    
+    # X = input("Enter first string: ").lower() 
+    # Y = input("Enter second string: ").lower() 
+    # tokenization 
+    X_list = word_tokenize(X)  
+    Y_list = word_tokenize(Y) 
+    
+    # sw contains the list of stopwords 
+    sw = stopwords.words('english')  
+    l1 =[];l2 =[] 
+    
+    # remove stop words from the string 
+    X_set = {w for w in X_list if not w in sw}  
+    Y_set = {w for w in Y_list if not w in sw} 
+    
+    # form a set containing keywords of both strings  
+    rvector = X_set.union(Y_set)  
+    for w in rvector: 
+        if w in X_set: l1.append(1) # create a vector 
+        else: l1.append(0) 
+        if w in Y_set: l2.append(1) 
+        else: l2.append(0) 
+    c = 0
+    
+    # cosine formula  
+    for i in range(len(rvector)): 
+            c+= l1[i]*l2[i] 
+    cosine = c / float((sum(l1)*sum(l2))**0.5) 
+    print("similarity: ", cosine) 
+
+    return cosine
 
 if __name__ == '__main__':
     main()
