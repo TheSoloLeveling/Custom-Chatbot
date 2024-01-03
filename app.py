@@ -140,24 +140,24 @@ def handle_userinput(user_question):
         response = st.session_state.conversation({'question': user_question})
         #print(response)
 
-        score = sim(str(user_question), str(response['answer']))
-        print("similarity between " + str(user_question) + " and " + str(response['answer']) + " is : " + str(score))
+        #score = sim(str(user_question), str(response['answer']))
+        #print("similarity between " + str(user_question) + " and " + str(response['answer']) + " is : " + str(score))
         st.session_state.chatMemory = response['chat_history']
         st.session_state.displayMemory.append(user_question)
         st.session_state.displayMemory.append(response['answer'])
-        """
-        if score > 0.1 :                                                                                # add other scores between the input and memory
+        
+        #if score > 0.1 :                                                                                # add other scores between the input and memory
+        #    #st.session_state.chat_history = response['chat_history']
+        #    st.session_state.chatMemory = response['chat_history']
+        #    st.session_state.displayMemory.append(user_question)
+        #    st.session_state.displayMemory.append(response['answer'])
+        #else:
             #st.session_state.chat_history = response['chat_history']
-            st.session_state.chatMemory = response['chat_history']
-            st.session_state.displayMemory.append(user_question)
-            st.session_state.displayMemory.append(response['answer'])
-        else:
-            #st.session_state.chat_history = response['chat_history']
-            st.session_state.chatMemory = dummy
-            print("after update memory : " + str(st.session_state.chatMemory))
-            st.session_state.displayMemory.append(user_question)
-            st.session_state.displayMemory.append("I am sorry i can't respond to that, not on my personal knwoldge, i need more details !!!")
-        """
+        #    st.session_state.chatMemory = dummy
+        #    print("after update memory : " + str(st.session_state.chatMemory))
+        #   st.session_state.displayMemory.append(user_question)
+         #   st.session_state.displayMemory.append("I am sorry i can't respond to that, not on my personal knwoldge, i need more details !!!")
+       
         #print(type( st.session_state.chat_history))
         #typewriterUser(user_question)
         #typewriterBot(response['answer'])
@@ -267,7 +267,7 @@ def typewriterBot(text):
     font_size = 20  # Font size in pixels; adjust as needed
 
     estimated_height = estimate_text_height(text, font_size, line_height)
-   
+    
     components.html(
         f"""
         <div class="chat-container">
@@ -279,12 +279,17 @@ def typewriterBot(text):
             </div>
         </div>
         <style>
+        body {{
+            background-color: #000;
+            height: `{estimated_height}`vh;
+        }}
         /* Set up the grid container */
         .chat-container {{
             display: grid;
             grid-template-columns: auto; /* One column layout */
             grid-gap: 10px; /* Adjust the gap between grid items */
-            margin: 0 auto; /* Center the container */    
+            margin: 0 auto; /* Center the container */
+            
         }}
 
         /* Style for each chat message */
@@ -345,9 +350,9 @@ def main():
 
     load_dotenv()
     
-    st.set_page_config(page_title="Chatbot for Asthma"
-                       )
-    st.header("Chatbot for Asthma")
+    st.set_page_config(page_title="Chatbot for Asthma",
+                       layout='wide')
+    st.header("Chatbot for Asthma", divider="red")
     st.write(css, unsafe_allow_html=True)
 
     if "status" not in st.session_state:
@@ -371,11 +376,14 @@ def main():
     
   
     #st.session_state.status = True
+    left, d1, d2, right = st.columns((5,1,1,3))
     
     st.session_state.container1 = st.container()
     toggle_all= True
 
-    st.session_state.user_question = st.text_input("")
+    with st.session_state.container1:
+            with left:
+                st.session_state.user_question = st.text_input("")
 
     if st.session_state.user_question:
         st.session_state.status = True
@@ -383,22 +391,27 @@ def main():
 
     #Print In Screen AFTER all UPDATEs
     with st.session_state.container1:
-        typewriterBot("Welcome Back. ask anything about asthma.")
+        with left:
+            typewriterBot("Welcome Back. ask anything about asthma.")
     
     print(st.session_state.status)
     #print(st.session_state.displayMemory)
     print(st.session_state.chatMemory)
     if st.session_state.displayMemory:
         with st.session_state.container1:
-            for i, message in enumerate(st.session_state.displayMemory):
-                if i % 2 == 0:
-                    typewriterUser(message)
-                    #st.write(user_template.replace(
-                        #   "{{MSG}}", message.content), unsafe_allow_html=True)
-                else:
-                    typewriterBot(message)
-        
-    
+            with left:
+                for i, message in enumerate(st.session_state.displayMemory):
+                    if i % 2 == 0:
+                        typewriterUser(message)
+                        #st.write(user_template.replace(
+                            #   "{{MSG}}", message.content), unsafe_allow_html=True)
+                    else:
+                        typewriterBot(message)
+
+    with st.session_state.container1:
+        right.subheader("Recent activity")
+        with right: 
+            st.write("right column")
     
     if toggle_all:
         #This looks for any input box and applies the code to it to stop default behavior when focus is lost
@@ -447,6 +460,11 @@ def main():
                 st.session_state.conversation = get_conversation_chain(vectorstore, text_chunks, 6)
 
             
+
+
+
+
+
 from nltk.corpus import stopwords 
 from nltk.tokenize import word_tokenize 
 import nltk

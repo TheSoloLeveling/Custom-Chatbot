@@ -7,8 +7,7 @@ css = '''
 .stTextInput {
     color: #4F8BF9;
     position: fixed;
-    bottom: 3rem;
-    padding-right: 100px
+    bottom: 3rem;  
 }
 
 '''
