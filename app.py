@@ -11,12 +11,18 @@ from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
+from langchain.prompts import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
+)
 import time
 import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 import copy
 import io
+import numpy as np
 
 #def get_images
 #def get_file_text
@@ -50,29 +56,63 @@ def get_text_chunks(text):
 def get_vectorstore_openai(text_chunks):
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+
+
     return vectorstore
 
 def get_vectorstore_instructor(text_chunks):
     embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
-    return vectorstore
 
-def get_conversation_chain(vectorstore):
+    
+    return vectorstore 
 
-    # Define your system instruction
-    system_instruction = "I want you to act as a human medical assistant."
+def get_conversation_chain(vectorstore, text_chunks, topCount):
 
-    # Define your template with the system instruction
-    template = (
-        f"{system_instruction} "
-        "Combine the chat history and follow up question into."
-        "a standalone question. Chat History: {chat_history}"
-        "Follow up question: {question}"
-    )
+    # Create the Transform
+    vectorizer = TfidfVectorizer()
 
+    top_keywords_list = []
+    for text in text_chunks:
+        # Tokenize and build vocab
+        vectorizer.fit([text])
+
+        # Encode document
+        vector = vectorizer.transform([text])
+
+        # Summarize encoded vector
+        keywords = vectorizer.get_feature_names_out()
+
+        # Sort the TF-IDF scores in descending order
+        sorted_indices = np.argsort(vector.toarray()).flatten()[::-1]
+
+        # Get the top 3 keywords
+        top_keywords = [keywords[i] for i in sorted_indices[:topCount]]
+        top_keywords_list.append(top_keywords)
+
+        keywords_string = ', '.join([', '.join(sublist) for sublist in top_keywords_list])
+
+    general_system_template = r""" 
+    act as a human medical assistant,
+    answer only if it's related to the specififc context :
+    ----
+    {context}
+    ----
+    answer only if its related to most of these key words :
+    """ + keywords_string + r"""
+    if its not related answer exactly by : "Sorry, i dont have any information about that."
+    ----
+    """
+    
+    general_user_template = "Question:```{question}```"
+    messages = [
+                SystemMessagePromptTemplate.from_template(general_system_template),
+                HumanMessagePromptTemplate.from_template(general_user_template)
+    ]
     # Create the prompt template
-    condense_question_prompt = PromptTemplate.from_template(template)
+    qa_prompt = ChatPromptTemplate.from_messages(messages)
 
+    
     llm = ChatOpenAI()
     # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
 
@@ -86,7 +126,7 @@ def get_conversation_chain(vectorstore):
         retriever=vectorstore.as_retriever(search_kwargs={"k": 2}),
         memory=st.session_state.chatMemory,
         get_chat_history=lambda h:h,
-        condense_question_prompt=condense_question_prompt,
+        combine_docs_chain_kwargs={'prompt': qa_prompt}
     )
 
     return conversation_chain
@@ -404,7 +444,7 @@ def main():
                 # craete vector store, vector database containing embedding of each chunk of text
                 vectorstore = get_vectorstore_openai(text_chunks)
                 # create conversation chain
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                st.session_state.conversation = get_conversation_chain(vectorstore, text_chunks, 6)
 
             
 from nltk.corpus import stopwords 
