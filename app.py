@@ -85,7 +85,8 @@ def get_conversation_chain(vectorstore):
         llm=llm,
         retriever=vectorstore.as_retriever(search_kwargs={"k": 2}),
         memory=st.session_state.chatMemory,
-        #condense_question_prompt=condense_question_prompt,
+        get_chat_history=lambda h:h,
+        condense_question_prompt=condense_question_prompt,
     )
 
     return conversation_chain
@@ -101,7 +102,11 @@ def handle_userinput(user_question):
 
         score = sim(str(user_question), str(response['answer']))
         print("similarity between " + str(user_question) + " and " + str(response['answer']) + " is : " + str(score))
-        if score > 0.1 :
+        st.session_state.chatMemory = response['chat_history']
+        st.session_state.displayMemory.append(user_question)
+        st.session_state.displayMemory.append(response['answer'])
+        """
+        if score > 0.1 :                                                                                # add other scores between the input and memory
             #st.session_state.chat_history = response['chat_history']
             st.session_state.chatMemory = response['chat_history']
             st.session_state.displayMemory.append(user_question)
@@ -111,11 +116,8 @@ def handle_userinput(user_question):
             st.session_state.chatMemory = dummy
             print("after update memory : " + str(st.session_state.chatMemory))
             st.session_state.displayMemory.append(user_question)
-            st.session_state.displayMemory.append("i don't know.")
-
-        
-
-
+            st.session_state.displayMemory.append("I am sorry i can't respond to that, not on my personal knwoldge, i need more details !!!")
+        """
         #print(type( st.session_state.chat_history))
         #typewriterUser(user_question)
         #typewriterBot(response['answer'])
