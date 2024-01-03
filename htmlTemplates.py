@@ -10,6 +10,10 @@ css = '''
     bottom: 3rem;  
 }
 
+.appview-container {
+            background: #262626
+        }
+        
 '''
 
 bot_template = '''

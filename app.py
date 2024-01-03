@@ -164,32 +164,6 @@ def handle_userinput(user_question):
         #st.session_state.status = True
 
 def typewriterUser(text):
-    
-    def estimate_text_height(text, font_size, line_height):
-        lines = text.split('\n')  # Split the text into lines at each newline character
-        total_lines = 0
-
-        for line in lines:
-            if line:  # Check if the line is not empty
-                # Calculate the number of lines this particular line will occupy
-                line_length = len(line)
-                line_lines = -(-line_length // average_chars_per_line)  # Ceiling division
-                total_lines += line_lines
-            else:
-                # Empty line indicates a paragraph break or bullet point
-                total_lines += 1  # Add one line for the line jump
-
-        # Calculate the estimated height in pixels
-        estimated_height = total_lines * line_height * font_size
-        return estimated_height
-    
-    # Estimate the number of lines
-    average_chars_per_line = 64  # This is an estimate; adjust based on your actual content and styling
-    line_height = 5 # Adjust based on your styling
-    font_size = 20  # Font size in pixels; adjust as needed
-
-    estimated_height = estimate_text_height(text, font_size, line_height)
-
     components.html(
         f"""
         <div class="chat-container">
@@ -201,12 +175,11 @@ def typewriterUser(text):
             </div>
         </div>
         <style>
+        body {{
+            background-color: #262626;
+        }}
         /* Set up the grid container */
         .chat-container {{
-            display: grid;
-            grid-template-columns: auto; /* One column layout */
-            grid-gap: 10px; /* Adjust the gap between grid items */
-            margin: 0 auto; /* Center the container */
             
         }}
 
@@ -216,10 +189,11 @@ def typewriterUser(text):
             align-items: center;
             padding: 1rem;
             border-radius: 0.5rem;
-            background-color: #475063;
+            background-color: #262626;
             color: #fff;
             margin: 0; /* Remove any default margin */
             align-items: flex-start;
+            border: 0.02rem solid;
         }}
 
         /* Style for the avatar within the message */
@@ -238,35 +212,12 @@ def typewriterUser(text):
         }} 
         </style>
         """,
-        height=int(estimated_height),
+        height = 130, scrolling = True
         
     )
 
 def typewriterBot(text):
-    def estimate_text_height(text, font_size, line_height):
-        lines = text.split('\n')  # Split the text into lines at each newline character
-        total_lines = 0
 
-        for line in lines:
-            if line:  # Check if the line is not empty
-                # Calculate the number of lines this particular line will occupy
-                line_length = len(line)
-                line_lines = -(-line_length // average_chars_per_line)  # Ceiling division
-                total_lines += line_lines
-            else:
-                # Empty line indicates a paragraph break or bullet point
-                total_lines += 1  # Add one line for the line jump
-
-        # Calculate the estimated height in pixels
-        estimated_height = total_lines * line_height * font_size
-        return estimated_height
-    
-    # Estimate the number of lines
-    average_chars_per_line = 64  # This is an estimate; adjust based on your actual content and styling
-    line_height = 5 # Adjust based on your styling
-    font_size = 20  # Font size in pixels; adjust as needed
-
-    estimated_height = estimate_text_height(text, font_size, line_height)
     
     components.html(
         f"""
@@ -275,21 +226,16 @@ def typewriterBot(text):
                 <div class="avatar">
                     <img src="https://d2cbg94ubxgsnp.cloudfront.net/Pictures/2000x1125/9/9/3/512993_shutterstock_715962319converted_920340.png" style="max-height: 78px; max-width: 78px; border-radius: 50%; object-fit: cover;">
                 </div>
-                <div class="message"></div>
+                <div class="message">{text}</div>
             </div>
         </div>
         <style>
-        body {{
-            background-color: #000;
-            height: `{estimated_height}`vh;
+        html, body {{
+            background-color: #262626;
+            
         }}
         /* Set up the grid container */
         .chat-container {{
-            display: grid;
-            grid-template-columns: auto; /* One column layout */
-            grid-gap: 10px; /* Adjust the gap between grid items */
-            margin: 0 auto; /* Center the container */
-            
         }}
 
         /* Style for each chat message */
@@ -298,10 +244,11 @@ def typewriterBot(text):
             align-items: center;
             padding: 1rem;
             border-radius: 0.5rem;
-            background-color: #475063;
+            background-color: #475062;
             color: #fff;
             margin: 0; /* Remove any default margin */
             align-items: flex-start;
+            border: 0.02rem solid;
         }}
 
         /* Style for the avatar within the message */
@@ -337,21 +284,20 @@ def typewriterBot(text):
 
             setTimeout(() => effect(element, texto, i+1), 5);
         }}
-
         effect(div, texto);
-        </script>
-        """,
-        height=int(estimated_height),
         
+        </script>
+        """, height = 130, scrolling = True
     )
 
 
 def main():
 
+
     load_dotenv()
-    
     st.set_page_config(page_title="Chatbot for Asthma",
                        layout='wide')
+    
     st.header("Chatbot for Asthma", divider="red")
     st.write(css, unsafe_allow_html=True)
 
