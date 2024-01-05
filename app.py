@@ -93,18 +93,21 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
         keywords_string = ', '.join([', '.join(sublist) for sublist in top_keywords_list])
 
     general_system_template = r""" 
-    act as a human medical assistant,
-    answer only if it's related to the specififc context :
+    act as a medical assistant only if human question "{question}" is related to the given context {context}:
     ----
-    {context}
-    ----
+    
     answer only if its related to most of these key words :
     """ + keywords_string + r"""
-    if its not related answer exactly by : "Sorry, i dont have any information about that."
+    if its not related, refuse to answer this question : "{question}"
+    always answer brievly, give details or long answers only if the human asked for it
+    ----
+    the history of the your chat with the human :
+
+    {chat_history}
     ----
     """
     
-    general_user_template = "Question:```{question}```"
+    general_user_template = "Question:```{question} answer only if my question is related to this context : {context} and refuse to answer ```"
     messages = [
                 SystemMessagePromptTemplate.from_template(general_system_template),
                 HumanMessagePromptTemplate.from_template(general_user_template)
@@ -123,7 +126,7 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
 
     conversation_chain = ConversationalRetrievalChain.from_llm(     #conversation chain 
         llm=llm,
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 2}),
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 1}),
         memory=st.session_state.chatMemory,
         get_chat_history=lambda h:h,
         combine_docs_chain_kwargs={'prompt': qa_prompt}
@@ -189,7 +192,7 @@ def typewriterUser(text):
             align-items: center;
             padding: 1rem;
             border-radius: 0.5rem;
-            background-color: #262626;
+            background: linear-gradient(to left, #004080,  #0080ff);
             color: #fff;
             margin: 0; /* Remove any default margin */
             align-items: flex-start;
@@ -209,6 +212,7 @@ def typewriterUser(text):
             white-space: pre-wrap;
             word-wrap: break-word;
             flex-grow: 1;
+            font-size: 18px;
         }} 
         </style>
         """,
@@ -217,7 +221,6 @@ def typewriterUser(text):
     )
 
 def typewriterBot(text):
-
     
     components.html(
         f"""
@@ -264,6 +267,7 @@ def typewriterBot(text):
             white-space: pre-wrap;
             word-wrap: break-word;
             flex-grow: 1;
+            font-size: 18px;
         }} 
         </style>
         <script>
@@ -285,20 +289,25 @@ def typewriterBot(text):
             setTimeout(() => effect(element, texto, i+1), 5);
         }}
         effect(div, texto);
-        
+
+        const dataToSend = "test dataTotSend !!!!!!!!"
+        Streamlit.setComponentValue(3.14);
         </script>
         """, height = 130, scrolling = True
     )
+    
+    #data_from_js = st.session_state.get('data_from_js', None)
+
+    #return data_from_js
 
 
 def main():
-
 
     load_dotenv()
     st.set_page_config(page_title="Chatbot for Asthma",
                        layout='wide')
     
-    st.header("Chatbot for Asthma", divider="red")
+    st.header("Chatbot for Asthma", divider="blue")
     st.write(css, unsafe_allow_html=True)
 
     if "status" not in st.session_state:
@@ -322,14 +331,18 @@ def main():
     
   
     #st.session_state.status = True
-    left, d1, d2, right = st.columns((5,1,1,3))
+    left, d1, d2, right = st.columns((8,1,1,3))
     
     st.session_state.container1 = st.container()
     toggle_all= True
 
     with st.session_state.container1:
             with left:
-                st.session_state.user_question = st.text_input("")
+                a, b = st.columns((1,15))
+                with a:
+                    st.markdown('<button class="primaryButton" data-tooltip="New Conversation"> + </button>', unsafe_allow_html=True)
+                with b:
+                    st.session_state.user_question = st.text_input("", placeholder="ask a question...")
 
     if st.session_state.user_question:
         st.session_state.status = True
@@ -338,7 +351,8 @@ def main():
     #Print In Screen AFTER all UPDATEs
     with st.session_state.container1:
         with left:
-            typewriterBot("Welcome Back. ask anything about asthma.")
+            result = typewriterBot("Welcome Back. ask anything about asthma.")
+            #st.write("result = ", result)
     
     print(st.session_state.status)
     #print(st.session_state.displayMemory)
@@ -356,8 +370,13 @@ def main():
 
     with st.session_state.container1:
         right.subheader("Recent activity")
-        with right: 
-            st.write("right column")
+        with right:
+           with st.container(border=True):
+                st.button("conversation 1", key ="1")
+                st.divider()
+                st.button("conversation 2", key ="2")
+                st.divider()
+                st.button("conversation 3", key="3")
     
     if toggle_all:
         #This looks for any input box and applies the code to it to stop default behavior when focus is lost
@@ -385,10 +404,22 @@ def main():
         )
 
     with st.sidebar:
-        st.subheader("Base Knowldge")
+        
+        st.subheader("Created models")
+        with st.container(border=True):
+                
+                st.write("model 1")
+                st.divider()
+                st.write("model 2")
+                st.divider()
+                st.write("model 3")
+          
         vectorstore = None
+        #st.markdown("""---""")
+        #st.text_area("test")
+        st.markdown("""<hr style="height:4px;border:none;color:#0080ff;background-color:#0080ff;" /> """, unsafe_allow_html=True)
         docs = st.file_uploader(
-            "Upload your data", accept_multiple_files=True)
+            "Upload Base Knowldge", accept_multiple_files=True)
         if st.button("Process"):
             
             with st.spinner("Processing"):
@@ -404,7 +435,7 @@ def main():
                 vectorstore = get_vectorstore_openai(text_chunks)
                 # create conversation chain
                 st.session_state.conversation = get_conversation_chain(vectorstore, text_chunks, 6)
-
+        #st.markdown("""---""")
             
 
 
