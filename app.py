@@ -5,7 +5,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
@@ -93,13 +93,14 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
         keywords_string = ', '.join([', '.join(sublist) for sublist in top_keywords_list])
 
     general_system_template = r""" 
-    act as a medical assistant only if human question "{question}" is related to the given context {context}:
+    answers need to be more human and answer question like you are talking to a baby, act as a medical assistant that talks only english only if human question "{question}" is related to the given context {context}:
     ----
     
     answer only if its related to most of these key words :
     """ + keywords_string + r"""
     if its not related, refuse to answer this question : "{question}"
-    always answer brievly, give details or long answers only if the human asked for it
+    always answer brievly, talk like you are a doctor or a medical assistant that advises patients
+    answers need to be more human and answer question like you are talking to a baby
     ----
     the history of the your chat with the human :
 
@@ -107,7 +108,7 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
     ----
     """
     
-    general_user_template = "Question:```{question} answer only if my question is related to this context : {context} and refuse to answer ```"
+    general_user_template = "answer in less 30 words if necessary, answers need to be more human and answer question like you are talking to a baby, ignorant i dont understand anything, Question:```{question}, talk like you are a doctor or a medical assistant that advises patients and answer only if the answer of the question is findable in this informations : {context} , if you cant find the answer in the informations refuse to answer(the refuse is brief and with respect) execpt if the question is imperative (what is the last, the first, continue, stop, all, most, recent  ....). ```"
     messages = [
                 SystemMessagePromptTemplate.from_template(general_system_template),
                 HumanMessagePromptTemplate.from_template(general_user_template)
@@ -119,14 +120,14 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
     llm = ChatOpenAI()
     # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
 
-    memory = ConversationBufferMemory(     #memory used by the chatbot stores messages in buffer - when called returns all messages stored
+    memory = ConversationBufferWindowMemory( k=6,    #memory used by the chatbot stores messages in buffer - when called returns all messages stored
         memory_key='chat_history', return_messages=True)
 
     st.session_state.chatMemory = memory
 
     conversation_chain = ConversationalRetrievalChain.from_llm(     #conversation chain 
         llm=llm,
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 1}),
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
         memory=st.session_state.chatMemory,
         get_chat_history=lambda h:h,
         combine_docs_chain_kwargs={'prompt': qa_prompt}
@@ -338,7 +339,7 @@ def main():
 
     with st.session_state.container1:
             with left:
-                a, b = st.columns((1,15))
+                a, b = st.columns((1,12))
                 with a:
                     st.markdown('<button class="primaryButton" data-tooltip="New Conversation"> + </button>', unsafe_allow_html=True)
                 with b:

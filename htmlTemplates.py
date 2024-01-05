@@ -44,14 +44,14 @@ css = '''
 
     color: #4F8BF9;
     position: fixed;
-    bottom: 17rem;
+    bottom: 1rem;
 
 }
 
 [data-testid='stFileUploader'] {
     color: #4F8BF9;
     position: fixed;
-    bottom: 21rem; 
+    bottom: 3rem; 
 }
 
 
