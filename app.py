@@ -24,6 +24,30 @@ import copy
 import io
 import numpy as np
 
+
+############################################################################################################################################
+
+from langchain.document_loaders import DirectoryLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+
+
+def load_docs(directory):
+  loader = DirectoryLoader(directory)
+  documents = loader.load()
+  return documents
+
+
+def split_docs(documents,chunk_size=500,chunk_overlap=20):
+  text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+  docs = text_splitter.split_documents(documents)
+  return docs
+
+
+
+
+
+############################################################################################################################################
 #def get_images
 #def get_file_text
 def get_text_files(text_files):
@@ -92,15 +116,13 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
 
         keywords_string = ', '.join([', '.join(sublist) for sublist in top_keywords_list])
 
+    
     general_system_template = r""" 
-    answers need to be more human and answer question like you are talking to a baby, act as a medical assistant that talks only english only if human question "{question}" is related to the given context {context}:
+    the given context {context}:
     ----
     
     answer only if its related to most of these key words :
     """ + keywords_string + r"""
-    if its not related, refuse to answer this question : "{question}"
-    always answer brievly, talk like you are a doctor or a medical assistant that advises patients
-    answers need to be more human and answer question like you are talking to a baby
     ----
     the history of the your chat with the human :
 
@@ -108,7 +130,7 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
     ----
     """
     
-    general_user_template = "answer in less 30 words if necessary, answers need to be more human and answer question like you are talking to a baby, ignorant i dont understand anything, Question:```{question}, talk like you are a doctor or a medical assistant that advises patients and answer only if the answer of the question is findable in this informations : {context} , if you cant find the answer in the informations refuse to answer(the refuse is brief and with respect) execpt if the question is imperative (what is the last, the first, continue, stop, all, most, recent  ....). ```"
+    general_user_template = "Question:```{question},```"
     messages = [
                 SystemMessagePromptTemplate.from_template(general_system_template),
                 HumanMessagePromptTemplate.from_template(general_user_template)
@@ -125,6 +147,7 @@ def get_conversation_chain(vectorstore, text_chunks, topCount):
 
     st.session_state.chatMemory = memory
 
+    
     conversation_chain = ConversationalRetrievalChain.from_llm(     #conversation chain 
         llm=llm,
         retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
@@ -406,6 +429,14 @@ def main():
 
     with st.sidebar:
         
+        documents = load_docs(r'C:\Users\bouzi\OneDrive\Phd\Janvier 2024\data')
+        st.write(len(documents))
+        docs = split_docs(documents)
+        for i in range(0, len(docs)+1):
+            st.write(i)
+            st.write(docs[i].page_content)
+
+
         st.subheader("Created models")
         with st.container(border=True):
                 
